@@ -6,9 +6,9 @@ const organizationSchema = new Schema({
   name: { type: String, required: true },
   description: { type: String },
   members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  teams: [{ type: Schema.Types.ObjectId, ref: 'Team' }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-
   
 });
 

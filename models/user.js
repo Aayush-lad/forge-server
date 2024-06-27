@@ -1,13 +1,13 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 const userSchema = new Schema({
-  username: { type: String, required: true, unique: true },
+  username: { type: String,unique:false },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   roles: [
     {
       organizationId: { type: Schema.Types.ObjectId, ref: "Organization" },
-      role: { type: String, enum: ["Admin", "ProjectManager", "TeamMember"] },
+      role: { type: String, enum: ["Admin", "ProjectManager", "Member"] },
     },
   ],
   projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],

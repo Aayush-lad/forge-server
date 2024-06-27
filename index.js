@@ -5,6 +5,10 @@ import mongoose from "mongoose";
 import cors from "cors";
 import authRouter from "./routes/auth.js";
 import orgRouter from "./routes/organization.js";
+import teamRouter from "./routes/team.js"
+import projRouter from "./routes/project.js"
+
+
 import bodyParser from "body-parser";
 const app =express()
 
@@ -21,6 +25,8 @@ app.get("/", (req, res) => {
 
 app.use("/auth",authRouter);
 app.use("/organization",orgRouter);
+app.use("/team",teamRouter);
+app.use("/project",projRouter);
 
 mongoose.connect("mongodb://localhost:27017/foge-dev").then(() => {
     console.log("Connected to MongoDB");
