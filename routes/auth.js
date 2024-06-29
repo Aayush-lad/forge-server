@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs"
 const router = express.Router();
 import dotenv from  "dotenv"
 import auth from '../controllers/auth.js';
+import authMiddleware from '../middlewares/auth.js'
 
 
 dotenv.config()
@@ -13,6 +14,6 @@ dotenv.config()
 
 router.post('/register', auth.register);
 router.post('/login',auth.login);
-router.get("/user", auth.getUser);
+router.get("/user",authMiddleware, auth.getUser);
 
 export default router;

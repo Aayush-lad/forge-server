@@ -28,10 +28,28 @@ const register = async (req, res) => {
           email:user.email
         }
       };
+
+      const userInfo =await  User.findById(user._id,"-password").populate(
+        {
+          path:'roles.organizationId'
+        }
+      ).populate(
+        {
+          path:'projects'
+        }
+      ).populate(
+        {
+          path:'tasks'
+        }
+      ).populate(
+      {
+        path:'teams'
+      }).exec()
+
   
       jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
         if (err) throw err;
-        res.json({ token,status:true });
+        res.json({ token,user:userInfo,status:true });
       });
   
     } catch (error) {
@@ -62,27 +80,45 @@ const register = async (req, res) => {
   
       const payload = {
         user: {
-          id: user.id,
+          id: user._id,
           email: user.email,
           role: user.role,
           username:user.username
         }
       };
 
-      const data = {
-        id: user.id,
-        email: user.email,
-        roles: user.roles,
-        username:user.username,
-        projects:user.projects,
-        tasks:user.tasks,
-        
-        
-      }
+
+      // get complete user info including organizationlist , tasks projects teams
+
+      const userInfo =await  User.findById(user._id,"-password").populate(
+        {
+          path:'roles.organizationId'
+        }
+      ).populate(
+        {
+          path:'projects'
+        }
+      ).populate(
+        {
+          path:'tasks'
+        }
+      ).populate(
+      {
+        path:'teams'
+      }).exec()
+
+
+      //get all userinfo
+
+      console.log(userInfo);
+
+    
+
+
   
       jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
         if (err) throw err;
-        res.json({ token , status:true});
+        res.json({ token , user:userInfo,status:true});
       });
   
     } catch (error) {
@@ -94,8 +130,17 @@ const register = async (req, res) => {
 
   const getUser = async(req,res)=>{
     try {
-      const user = await User.findById(req.user.id).select('-password');
-      res.json(user);
+      const user = await User.findOne(req.user.email).select('-password').populate({
+        path:'roles.organizationId'
+      }).populate({
+        path:'projects'
+      }).populate({
+        path:'tasks'
+      }).populate({
+        path:'teams'
+      });
+
+      res.json({user});
       } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: 'Server Error' });

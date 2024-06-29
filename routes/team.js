@@ -2,49 +2,94 @@ import express from "express";
 import Team from "../models/team.js"
 import User from "../models/user.js"
 import Organization from "../models/organization.js"
+import { ChatRoom } from "../models/chat.js";
+import authMiddleware from '../middlewares/auth.js'
 
 const router = express.Router();
 
 // CREATE TEAM
 
-router.post("/create", async (req, res) => {
-    console.log(req.body);
+router.post("/create", authMiddleware, async (req, res) => {
     const { name, organizationId } = req.body;
+    console.log('creating team');
+    
     if (!name || !organizationId) {
         return res.json({ error: "Name and organizationId are required" });
     }
+
     try {
         const team = new Team({ name, organizationId: organizationId });
-        if(!team.members){
-            team.members=[]
+
+        if (!team.members) {
+            team.members = [];
         }
-        if(req.body.memberIds)
-            team.members = [...team.members ,...req.body.memberIds];
 
-        //  add teamId to users
+        if (req.body.memberIds) {
+            team.members = [...team.members, ...req.body.memberIds];
+        }
 
-        for(let memberId of team.members){
+        // Add teamId to users
+        for (let memberId of team.members) {
             const user = await User.findById(memberId);
-            if(!user){
-                return res.json({message:"User not found",status:false});
+            if (!user) {
+                return res.json({ message: "User not found", status: false });
             }
             user.teams.push(team._id);
             await user.save();
         }
+
+        const creator = await User.findOne({ email: req.user.user.email }); // Await the resolution of findOne
+
+        if (!team.members.includes(creator._id)) {
+            team.members.push(creator._id);
+            
+            if (!creator.teams) {
+                creator.teams = [];
+            }
+            creator.teams.push(team._id);
+            await creator.save();
+        }
+
         await team.save();  
+        
+        const chatRoom = new ChatRoom({ name: team.name, members: team.members, teamId: team._id, isPrivate: false });
+        await chatRoom.save();
+
         res.json({ message: "Team created successfully", team });
+
     } catch (error) {
-        console.log(error)
+        console.log(error);
         res.json({ error: "Internal server error" });
     }
-})
+});
 
 
-router.get("/:organizationId/teams", async (req, res) => {
+
+router.get("/:organizationId/teams",authMiddleware, async (req, res) => {
         const { organizationId } = req.params;
+
+        if(organizationId==undefined){
+            return res.json({message:"OrganizationId is required",status:false});
+        }
+        const user = await User.findById(req.user.user.id);
+        console.log(req.params,req.user);
+
         try {
-          const teams = await Team.find({ organizationId }, 'name _id');
-          res.json(teams);
+          const teams = await Team.find({ organizationId })
+        
+        const response = []
+        for(let team in teams){
+            if(!team.members){
+                continue;
+            }
+
+            if(team.members.includes(user._id)){
+                response.push(team);
+            }
+        }
+         console.log(response); 
+         res.json(teams);
+
         } catch (error) {
             console.log(error);
           res.status(500).json({ message: 'Server error', error });
@@ -88,9 +133,12 @@ router.get("/:teamId/members", async (req, res) => {
 router.post("/:teamId/add-member", async (req, res) => {
     const { teamId } = req.params;
     const { email } = req.body;
+    console.log(teamId,email);
     try {
         
         const team = await Team.findById(teamId);
+
+        
 
         if(!team){
             return res.json({message:"Team not found",status:false});

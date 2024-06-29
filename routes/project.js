@@ -3,6 +3,7 @@ import Project from "../models/project.js"
 import User from "../models/user.js";
 import Team from "../models/team.js";
 import Task from "../models/task.js";
+import { ChatRoom } from "../models/chat.js";
 
 
 const router = express.Router();
@@ -39,8 +40,14 @@ router.post("/create", async (req, res) => {
             }
         }
 
-        await savedProject.save();
+       await savedProject.save();
+
+        // create chat room for project
+
+        const chatRoom = new ChatRoom({projectId:savedProject._id,members:savedProject.members, isPrivate:false,name:savedProject.name});
         
+        await chatRoom.save();
+
         res.json({project:savedProject,message:"Project successfully created",status:true})
     } catch (err) {
         console.log(err);

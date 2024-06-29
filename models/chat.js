@@ -1,16 +1,29 @@
-import mongoose,{Schema} from "mongoose";
+import mongoose from 'mongoose';
+const { Schema } = mongoose;
+
+const messageSchema = new Schema({
+  sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  content: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+  chatRoom: { type: Schema.Types.ObjectId, ref: 'ChatRoom', required: true },
+});
+
+const chatRoomSchema = new Schema({
+  name: { type: String },
+  members: [{ type: Schema.Types.ObjectId, ref: 'User', required: true }],
+  isPrivate: { type: Boolean, default: false },
+  projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
+  teamId: { type: Schema.Types.ObjectId, ref: 'Team' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const Message = mongoose.model('Message', messageSchema);
+const ChatRoom = mongoose.model('ChatRoom', chatRoomSchema);
 
 
-const chatMessageSchema = new Schema({
-    senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
-    message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
-  });
 
-const ChatMessage  =mongoose.model.ChatMessage || mongoose.model('ChatMessage', chatMessageSchema);
-
-export default ChatMessage;
-
-
-
+export {
+  Message,
+  ChatRoom,
+};

@@ -6,6 +6,8 @@ dotenv.config();
 export default function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
+
+  
   if (!token) {
   return res.status(401).json({ message: 'You are not authorized' });
   }
@@ -14,8 +16,9 @@ export default function authenticateToken(req, res, next) {
   return res.json({ message: 'You are not authorized' });
   }
 
-  console.log(user);
   req.user = user;
+
+  console.log("FROM MIDDLEWARE",req.user);
   next();
   });
 }
