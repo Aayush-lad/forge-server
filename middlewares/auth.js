@@ -15,10 +15,7 @@ export default function authenticateToken(req, res, next) {
   if (err) {
   return res.json({ message: 'You are not authorized' });
   }
-
   req.user = user;
-
-  console.log("FROM MIDDLEWARE",req.user);
   next();
   });
 }

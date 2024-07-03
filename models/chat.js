@@ -6,6 +6,7 @@ const messageSchema = new Schema({
   content: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
   chatRoom: { type: Schema.Types.ObjectId, ref: 'ChatRoom', required: true },
+  type: { type: String, default: 'text' },
 });
 
 const chatRoomSchema = new Schema({
