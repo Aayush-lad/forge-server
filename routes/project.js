@@ -51,7 +51,7 @@ router.post("/create", async (req, res) => {
         res.json({project:savedProject,message:"Project successfully created",status:true})
     } catch (err) {
         console.log(err);
-        res.json({message:"Something went wrong"});
+        res.json({message:"Something went wrong",status:false});
     }
 });
 
@@ -72,17 +72,18 @@ router.delete("/delete/:projectId", async (req, res) => {
             user.projects = user.projects.filter((item)=> item!=projectId);
             await user.save();
         }
-        await project.delete();
+        await await Project.findByIdAndDelete(projectId);
         res.json({message:"Project successfully deleted",status:true});
     } catch (err) {
         console.log(err);
-        res.json({message:"Something went wrong"});
+        res.json({message:"Something went wrong",status:false});
     }
 });
 
 // add member to project
 
 router.post("/:projectId/add-member", async (req, res) => {
+    console.log(req.params,req.body)
     const { projectId } = req.params;
     const { email } = req.body;
     try {
@@ -113,6 +114,38 @@ router.post("/:projectId/add-member", async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 });
+
+// remove member from project
+
+router.delete("/:projectId/delete-member", async (req, res) => {
+
+    const { projectId } = req.params;
+    const { email } = req.body;
+    try {
+        const project = await Project.findById(projectId);
+        if(!project){
+            return res.json({message:"Project not found",status:false});
+        }
+        const user = await User.findOne({email:email});
+        if(!user){
+            return res.json({message:"User not found",status:false});
+        }
+        const userId =user._id;
+        console.log(user._id);
+        project.members =  project.members.filter((item)=> item!=userId.toString());
+        user.projects = user.projects.filter((item)=> item!=projectId);
+        await project.save();
+        await user.save();
+        res.json({message:"User removed successfully",status:true,project});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
+
+
 
 
 
@@ -186,7 +219,6 @@ router.delete("/:projectId/desassign-team", async (req, res) => {
                     await task.save();
                 }
             }
-
         }
         await project.save();
 
@@ -201,8 +233,9 @@ router.delete("/:projectId/desassign-team", async (req, res) => {
 
 router.post("/:projectId/add-task", async (req, res) => {
     const { projectId } = req.params;
-    console.log(projectId)
+    console.log(req.body)
     const newTask = new Task({...req.body,projectId:projectId});
+    console.log(newTask.startDate);
     try {
         const project = await Project.findById(projectId);
         if(!project){
@@ -224,13 +257,13 @@ router.post("/:projectId/add-task", async (req, res) => {
 router.get("/:projectId/tasks", async (req, res) => {
     const { projectId } = req.params;
     try {
-        const project = await Project.findById();
-
+        const project = await Project.findById(projectId);
         if(!project){
             return res.json({message:"Project not found",status:false});
         }
         
         const tasks = await Task.find({projectId:projectId});
+        console.log(tasks);
 
         res.json({tasks,message:"Tasks fetched successfully",status:true});
 
@@ -345,13 +378,11 @@ router.get("/team/:teamId", async (req, res) => {
 
 // get all projects of user
 
-router.get("/user/:userId", async (req, res) => {
-    const { userId } = req.params;
+router.get("/:organizationId/:userId", async (req, res) => {
+    const { userId,organizationId } = req.params;
     try {
-        const projects = await Project.find({});
-
+        const projects = await Project.find({organizationId:organizationId});
         const userProjects = projects.filter((project)=> project.members.includes(userId));
-
         res.json({projects:userProjects,message:"Projects fetched successfully",status:true});
 
     }
@@ -366,6 +397,8 @@ router.get("/user/:userId", async (req, res) => {
 
 router.get("/:projectId", async (req, res) => {
     const { projectId } = req.params;
+
+    console.log(projectId);
     try {
         const project = await Project
         .findById(projectId)

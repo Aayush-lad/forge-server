@@ -4,9 +4,19 @@ import Team from "../models/team.js";
 import Project from "../models/project.js";
 import passgen from "crypto-random-string";
 import mail from "../utils/email.js";
+import mongoose from "mongoose";
+
 
 const getOrgMembers = async (req, res) => {
   const { organizationId } = req.params;
+
+  console.log(mongoose.Types.ObjectId.isValid(organizationId))
+
+  if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+    return res.json({ message: "Invalid organization ID", status: false });
+  }
+
+ 
   try {
     const members = await User.find({ "roles.organizationId": organizationId })
       .populate({
@@ -34,7 +44,7 @@ const getOrgMembers = async (req, res) => {
       };
     });
 
-    res.json(response);
+    res.json({response,status:false});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", status: false });

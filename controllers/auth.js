@@ -4,8 +4,15 @@ import User from '../models/user.js';
 import bcrypt from "bcryptjs"
 const router = express.Router();
 import dotenv from  "dotenv"
+import Stripe from "stripe";
+
+
 
 dotenv.config()
+
+const stripe = new Stripe(process.env.STRIPE_KEY);
+
+
 
 
 const register = async (req, res) => {
@@ -148,10 +155,53 @@ const register = async (req, res) => {
   }
 
 
+  const createCheckoutSession = async(req,res)=>{
+
+    console.log(req.body);
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types:["card"],
+      line_items:[{
+        price:req.body.price,
+        quantity:1
+      }],
+      mode:"subscription",
+      success_url:`http://localhost:3000/payment/success?plan=${req.body.name}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:"http://localhost:3000/payment/failure"
+    })
+
+    res.json({id:session.id});
+  }
+
+  const changePlan = async(req,res)=>{
+    const userId = req.user.user.id;
+    console.log(req.body);
+
+    try{
+      console.log(userId);
+      const user  = await User.findById(userId);
+      if(!user){
+        res.status(404).json("User doesnot exist");
+      }
+      user.plan = req.body.plan;
+      console.log(user)
+      await user.save();
+
+      res.json({message:"Plan changed Successfully"})
+    }
+    catch(err){
+      console.log(err);
+      res.status(501).json("Server Error");
+    }
+  };
+
+
 
 
 export default {
     register,
     login,
-    getUser
+    getUser,
+    createCheckoutSession,
+    changePlan
 }

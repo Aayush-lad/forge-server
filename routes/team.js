@@ -4,6 +4,8 @@ import User from "../models/user.js"
 import Organization from "../models/organization.js"
 import { ChatRoom } from "../models/chat.js";
 import authMiddleware from '../middlewares/auth.js'
+import Project from '../models/project.js'
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -12,9 +14,11 @@ const router = express.Router();
 router.post("/create", authMiddleware, async (req, res) => {
     const { name, organizationId } = req.body;
     console.log('creating team');
+
+
     
     if (!name || !organizationId) {
-        return res.json({ error: "Name and organizationId are required" });
+        return res.json({ message : "Name and organizationId are required",status:false });
     }
 
     try {
@@ -65,36 +69,43 @@ router.post("/create", authMiddleware, async (req, res) => {
 
 
 
-router.get("/:organizationId/teams",authMiddleware, async (req, res) => {
-        const { organizationId } = req.params;
+router.get("/:organizationId/teams", authMiddleware, async (req, res) => {
+    const { organizationId } = req.params;
 
-        if(organizationId==undefined){
-            return res.json({message:"OrganizationId is required",status:false});
+    console.log(req.user.user.id);
+
+  
+    if (!organizationId) {
+      return res.json({ message: "OrganizationId is required", status: false });
+    }
+  
+    try {
+      const user = await User.findById(req.user.user.id);
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found', status: false });
+      }
+  
+      const teams = await Team.find({ organizationId });
+      const response = [];
+  
+      for (let team of teams) {
+        if (!team.members) {
+          continue;
         }
-        const user = await User.findById(req.user.user.id);
-        console.log(req.params,req.user);
-
-        try {
-          const teams = await Team.find({ organizationId })
-        
-        const response = []
-        for(let team in teams){
-            if(!team.members){
-                continue;
-            }
-
-            if(team.members.includes(user._id)){
-                response.push(team);
-            }
+  
+        if (team.members.includes(user._id)) {
+          response.push(team);
         }
-         console.log(response); 
-         res.json(teams);
-
-        } catch (error) {
-            console.log(error);
-          res.status(500).json({ message: 'Server error', error });
-        }
-      });
+      }
+  
+      console.log(response);
+      res.json(response);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: 'Server error', error });
+    }
+  });
 
 
 router.get("/:teamId/members", async (req, res) => {
@@ -224,8 +235,9 @@ router.post("/:teamId/update-role", async (req, res) => {
     }
 })
 
-router.delete("/:teamId/delete", async (req, res) => {
+router.delete("/delete/:teamId", async (req, res) => {
     const { teamId } = req.params;
+    console.log("deleting ",teamId);
     try {
         const team = await Team.findById(teamId);
         if(!team){
@@ -247,7 +259,7 @@ router.delete("/:teamId/delete", async (req, res) => {
         }
         organization.teams = organization.teams.filter(teamId => teamId.toString() !== team._id.toString());
         await organization.save();
-        await team.remove();
+        await Team.findByIdAndDelete(teamId);
         res.json({message:"Team deleted successfully",status:true});
     }
     catch (error) {
@@ -255,6 +267,31 @@ router.delete("/:teamId/delete", async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 })
+
+// get complete teams details
+
+router.get("/:teamId", async (req, res) => {
+    const { teamId } = req.params;
+    try {
+        //  get all members of teamId with their  user._id name email role
+        const team = await Team.findById(teamId);
+        if(!team){
+            return res.json({message:"Team not found",status:false});
+        }
+
+        // get projects of team
+
+        const projects = await Project.find({ teamId: teamId });
+
+        const response ={...team,projects:projects}
+        res.json(response);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+
 
         
 

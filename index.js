@@ -19,6 +19,11 @@ import {BlobServiceClient} from "@azure/storage-blob"
 import multer from "multer";
 import authMiddleware from "./middlewares/auth.js";
 import meetingRouter from "./routes/meeting.js";
+import formRouter from "./routes/form.js";
+import Form from "./models/form.js";
+import Response from "./models/response.js";
+
+
 
 
 
@@ -117,6 +122,47 @@ app.post('/upload/:chatRoomId',authMiddleware, upload.single('file'), async (req
   }
 });
 
+app.post('/forms/submit-form',upload.single('file'),authMiddleware , async(req, res) => {
+    try {
+      const form = await Form.findById(req.body.formId);
+      if (!form) {
+        return res.status(404).send({ message: 'Form not found' });
+      }
+      if (form.closeDate && new Date() > new Date(form.closeDate)) {
+        return res.status(400).send({ message: 'Form submission closed' });
+      }
+      const response = new Response({
+        formId: req.body.formId,
+        userId: req.user.user.id,
+      });
+
+      for (let elementId in req.body.responses) {
+        let value = req.body.responses[elementId];
+        console.log(req.file);
+
+        // Check if value is a file uploaded
+        if (req.file && value === req.file.originalname) {
+          // Upload file to Azure Blob Storage
+          const blobName = `${
+          Date.now()}-${req.file.originalname}`;
+          const blobUrl = await createBlobInContainer(blobName, req.file.buffer);
+          value = blobUrl;
+        }
+        response.responses.push({ elementId, value });
+      }
+
+      await response.save();
+
+      form.responses.push(response._id);
+      await form.save();
+
+      res.status(201).send({ message: 'Form submitted successfully', response });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      res.status(500).send({ message: 'Error submitting form' });
+    }
+  });
+
 
 
 app.get("/", (req, res) => {
@@ -132,6 +178,10 @@ app.use("/team",teamRouter);
 app.use("/project",projRouter);
 app.use("/chat",chatRouter)
 app.use("/meeting",meetingRouter);
+app.use("/form",formRouter);
+
+
+
 
 
 mongoose.connect("mongodb://localhost:27017/foge-dev").then(() => {

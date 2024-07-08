@@ -15,5 +15,7 @@ dotenv.config()
 router.post('/register', auth.register);
 router.post('/login',auth.login);
 router.get("/user",authMiddleware, auth.getUser);
+router.post("/create-checkout-session",authMiddleware,auth.createCheckoutSession)
+router.post("/change-plan",authMiddleware,auth.changePlan);
 
 export default router;
