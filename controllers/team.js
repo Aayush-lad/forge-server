@@ -2,6 +2,7 @@ import Team from "../models/team.js"
 import Project from "../models/project.js"
 import Organization from "../models/organization.js";
 import User from "../models/user.js";
+import {ChatRoom} from '../models/chat.js'
 
 const create = async (req, res) => {
     const { name, organizationId } = req.body;
@@ -9,10 +10,8 @@ const create = async (req, res) => {
     if (!name || !organizationId) {
         return res.json({ message : "Name and organizationId are required",status:false });
     }
-
     try {
         const team = new Team({ name, organizationId: organizationId });
-
         if (!team.members) {
             team.members = [];
         }
@@ -20,8 +19,6 @@ const create = async (req, res) => {
         if (req.body.memberIds) {
             team.members = [...team.members, ...req.body.memberIds];
         }
-
-        // Add teamId to users
         for (let memberId of team.members) {
             const user = await User.findById(memberId);
             if (!user) {
@@ -30,9 +27,7 @@ const create = async (req, res) => {
             user.teams.push(team._id);
             await user.save();
         }
-
         const creator = await User.findOne({ email: req.user.user.email }); // Await the resolution of findOne
-
         if (!team.members.includes(creator._id)) {
             team.members.push(creator._id);
             
@@ -108,7 +103,6 @@ const deleteTeam =async (req, res) => {
 const deleteMember = async (req, res) => {
     const { teamId } = req.params;
     const { email } = req.body;
-
     console.log(teamId,email);
     try {
         const team = await Team.findById(teamId);
@@ -129,7 +123,6 @@ const deleteMember = async (req, res) => {
         user.teams = user.teams.filter(teamId => teamId.toString() !== team._id.toString())
         await team.save();
         await user.save();
-
         res.json({message:"User deleted successfully",status:true});
     }
     catch (error) {
@@ -143,11 +136,7 @@ const addMember = async (req, res) => {
     const { email } = req.body;
     console.log(teamId,email);
     try {
-        
         const team = await Team.findById(teamId);
-
-        
-
         if(!team){
             return res.json({message:"Team not found",status:false});
         }
@@ -186,8 +175,6 @@ const getMembers = async (req, res) => {
             select:"name"
         }
         );
-
-
         const response = members.map((user) => {
             return {
               _id: user._id,
@@ -208,34 +195,25 @@ const getMembers = async (req, res) => {
 
 const getTeams = async (req, res) => {
     const { organizationId } = req.params;
-
     console.log(req.user.user.id);
-
-  
     if (!organizationId) {
       return res.json({ message: "OrganizationId is required", status: false });
     }
-  
     try {
       const user = await User.findById(req.user.user.id);
-  
       if (!user) {
         return res.status(404).json({ message: 'User not found', status: false });
       }
-  
       const teams = await Team.find({ organizationId });
       const response = [];
-  
       for (let team of teams) {
         if (!team.members) {
           continue;
         }
-  
         if (team.members.includes(user._id)) {
           response.push(team);
         }
       }
-  
       console.log(response);
       res.json(response);
     } catch (error) {

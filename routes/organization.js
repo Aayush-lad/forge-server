@@ -5,7 +5,6 @@ import organization from '../controllers/organization.js';
 
 const router = express.Router();
 
-/*-----------------------------------ORGANIZATION ROUTES----------------------------------------------------- */
 
 router.post('/create',auth,organization.createOrg);
 router.post('/add-member',auth,authorizeOrgMemberMutate, organization.addMembers);

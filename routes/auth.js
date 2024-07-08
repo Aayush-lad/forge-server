@@ -1,8 +1,5 @@
 // routes/auth.js
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import User from '../models/user.js';
-import bcrypt from "bcryptjs"
 const router = express.Router();
 import dotenv from  "dotenv"
 import auth from '../controllers/auth.js';

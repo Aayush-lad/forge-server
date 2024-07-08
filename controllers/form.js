@@ -47,7 +47,7 @@ const create = async (req, res) => {
 
 
   const get = async (req, res) => {
-    console.log(req.params.id);
+
       try {
           const form = await Form.findById(req.params.id).populate(
             {
@@ -75,7 +75,7 @@ const create = async (req, res) => {
 
 
 const getResponses =async (req, res) => {
-    console.log(req.params.id);
+
       try {
           const form = await Form.findById(req.params.id)
           if (!form) {
@@ -83,7 +83,7 @@ const getResponses =async (req, res) => {
           }
           
           const responses = await Response.find({ formId: form._id });
-          console.log(responses.length)
+         
           res.send(responses);
         } catch (error) {
           console.error(error);
@@ -93,7 +93,6 @@ const getResponses =async (req, res) => {
 
   const formSubmission = async (req, res) => {
 
-    console.log(req.file);
     try {
       const form = await Form.findById(req.body.formId);
       if (!form) {
@@ -109,21 +108,20 @@ const getResponses =async (req, res) => {
         responses: []
       });
   
-      console.log("REQUEST BODY: ", typeof
-        req.body.file);
+  
   
       for (let elementId in req.body) {
         if (elementId !== 'formId') {
           let element = JSON.parse(req.body[elementId]);
           let value = element.value
           let label = element.label
-          console.log(element);
+         
           if (req.file && (typeof element.value == typeof {})) {
           
             const blobName = `${Date.now()}-${req.file.originalname}`;
             const blobUrl = await createBlobInContainer(blobName, req.file.buffer);
             value = blobUrl;
-            console.log(blobUrl);
+         
           }
           
           response.responses.push({ elementId, value, label });

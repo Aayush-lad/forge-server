@@ -1,16 +1,16 @@
 import express from "express"
 import projectController from "../controllers/project.js";
-
+import authMiddleware, { authorizeCreate, authorizeProjectMutate } from "../middlewares/auth.js";
 
 
 const router = express.Router();
+ 
 
-
-router.post("/create",projectController.create );
-router.delete("/delete/:projectId", projectController.deleteProject);
-router.post("/:projectId/add-member", projectController.addMember);
-router.delete("/:projectId/delete-member", projectController.removeMember);
-router.post("/:projectId/assign-teams",projectController.assignProject);
+router.post("/:organizationId/create",authMiddleware,authorizeCreate,projectController.create );
+router.delete("/delete/:projectId",authMiddleware,authorizeProjectMutate, projectController.deleteProject);
+router.post("/:projectId/add-member",authMiddleware,authorizeProjectMutate, projectController.addMember);
+router.delete("/:projectId/delete-member",authMiddleware,authorizeProjectMutate, projectController.removeMember);
+router.post("/:projectId/assign-teams",authMiddleware,authorizeProjectMutate,projectController.assignProject);
 router.post("/:projectId/add-task",projectController.addTask )
 router.get("/:projectId/tasks",projectController.getAllTasks);
 router.delete("/:projectId/delete-task/:taskId",projectController.deleteTask)

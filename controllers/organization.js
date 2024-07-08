@@ -6,28 +6,24 @@ import passgen from "crypto-random-string";
 import mail from "../utils/email.js";
 import mongoose from "mongoose";
 
-
 const getOrgMembers = async (req, res) => {
   const { organizationId } = req.params;
-
-  console.log(mongoose.Types.ObjectId.isValid(organizationId))
 
   if (!mongoose.Types.ObjectId.isValid(organizationId)) {
     return res.json({ message: "Invalid organization ID", status: false });
   }
 
- 
   try {
     const members = await User.find({ "roles.organizationId": organizationId })
       .populate({
         path: "teams",
-        match: { organizationId }, // Ensure only teams belonging to the organization are populated
-        select: "name", // Only select the name field
+        match: { organizationId },
+        select: "name",
       })
       .populate({
         path: "projects",
-        match: { organizationId }, // Ensure only projects belonging to the organization are populated
-        select: "name", // Only select the name field
+        match: { organizationId },
+        select: "name",
       });
 
     const response = members.map((user) => {
@@ -44,7 +40,7 @@ const getOrgMembers = async (req, res) => {
       };
     });
 
-    res.json({response,status:false});
+    res.json({ response, status: false });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", status: false });
@@ -61,7 +57,7 @@ const createOrg = async (req, res) => {
     const organization = new Organization({ name });
     await organization.save();
     const user = await User.findById(userId);
-    console.log(user);
+
     if (!user) {
       return res.json({ error: "User not found" });
     }
@@ -72,37 +68,39 @@ const createOrg = async (req, res) => {
     }
     user.roles.push({ organizationId: organization._id, role: "Admin" });
     await user.save();
-    res.json({ message: "Organization created successfully", organization });
+    res.json({
+      message: "Organization created successfully",
+      status: true,
+      organization,
+    });
   } catch (error) {
     console.log(error);
-    res.json({ error: "Internal server error" });
+    res.json({ message: "Internal server error", status: false });
   }
 };
 
 const addMembers = async (req, res) => {
   const userId = req.user.user.id;
   const { email, role, organizationId } = req.body;
+
   if (!email || !role || !organizationId) {
     return res.json({
-      message: "Email, role and organizationId are required",
+      message: "Email, role, and organizationId are required",
       status: false,
     });
   }
 
   try {
-    // Find the organization
     const organization = await Organization.findById(organizationId);
     if (!organization) {
       return res.json({ message: "Organization not found", status: false });
     }
 
-    // Check if the user is already a member of the organization
-
     let user = await User.findOne({ email });
-
-    console.log(user);
+    let temp_password = null;
 
     if (user) {
+      // Check if the user is already a member of the organization
       const userInOrganization = organization.members.includes(user._id);
       if (userInOrganization) {
         return res.json({
@@ -110,34 +108,30 @@ const addMembers = async (req, res) => {
           status: false,
         });
       }
-    }
-
-    // Find the user
-
-    let temp_password = "cbdhcwncejefvre";
-    if (!user) {
+    } else {
       temp_password = passgen({ length: 8 });
       const username = email.split("@")[0];
       user = new User({ email, password: temp_password, username });
       await user.save();
     }
 
-    // Add user to organization members
-    organization.members.push(user.id);
+    organization.members.push(user._id);
     await organization.save();
-
-    // Update user's roles
 
     user.roles.push({ organizationId, role });
     await user.save();
+
+    if (temp_password) {
+      await mail.sendInvitationEmail(email, organization.name, temp_password);
+    } else {
+      await mail.sendInvitationEmail(email, organization.name);
+    }
 
     res.json({
       message: "Member added successfully",
       status: true,
       organization,
     });
-    // Send invitation email
-    await mail.sendInvitationEmail(email, organization.name, temp_password);
   } catch (error) {
     console.error("Error adding member:", error);
     res.status(500).json({ message: "Internal server error", status: false });
@@ -145,13 +139,9 @@ const addMembers = async (req, res) => {
 };
 
 const deleteMember = async (req, res) => {
-
-
-  console.log(req.body);
   const { organizationId } = req.params;
-  const { email} = req.body;
+  const { email } = req.body;
 
-  console.log(req.params)
   try {
     const organization = await Organization.findById(organizationId);
     if (!organization) {
@@ -210,31 +200,26 @@ const deleteMember = async (req, res) => {
   }
 };
 
-const editUserRole =async(req,res)=>{
+const editUserRole = async (req, res) => {
+  const { organizationId } = req.params;
+  const { email } = req.body;
 
-  const {organizationId} = req.params;
-  const {email} = req.body;
+  try {
+    const user = await User.findOne({ email });
 
-  try{
-    const user = await User.findOne({email});
-
-    if(!user){
-      return res.json({message:"User not found",status:false})
+    if (!user) {
+      return res.json({ message: "User not found", status: false });
     }
 
     const organization = await Organization.findById(organizationId);
 
-    if(!organization){
-      return res.json({message:"Organization not found",status:false})
+    if (!organization) {
+      return res.json({ message: "Organization not found", status: false });
     }
 
-    console.log(user._id);
-
     const userInOrganization = organization.members.includes(user._id);
-    console.log(userInOrganization);
-  
+
     if (!userInOrganization) {
-      console.log("not in org");
       return res.json({
         message: "User is not a member of the organization",
         status: false,
@@ -242,58 +227,54 @@ const editUserRole =async(req,res)=>{
     }
 
     //  update user roles
-    user.roles = user.roles.map((role)=>{
-      if(role.organizationId.toString() === organizationId){
+    user.roles = user.roles.map((role) => {
+      if (role.organizationId.toString() === organizationId) {
         role.role = req.body.role;
       }
       return role;
-    })
+    });
 
     await user.save();
-    res.json({message:"User role updated successfully",status:true})
-  }
-  catch(error){
+    res.json({ message: "User role updated successfully", status: true });
+  } catch (error) {
     console.error(error);
-    res.json({message:"Internal server error",status:false})
+    res.json({ message: "Internal server error", status: false });
   }
-}
-
+};
 
 // get all organization of user
 
 const getAll = async (req, res) => {
-
   const userId = req.user.user.id;
 
   try {
-    const organizations = await Organization.find({ members: userId },"_id name createdAt ");
-    res.json({organizations, status:true});
-  }
-
-  catch (error) {
+    const organizations = await Organization.find(
+      { members: userId },
+      "_id name createdAt "
+    );
+    res.json({ organizations, status: true });
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", status: false });
   }
-}
+};
 
 //  delete organization
 
 const deleteOrganization = async (req, res) => {
   const { organizationId } = req.params;
 
-  console.log(organizationId);
   try {
     const organization = await Organization.findById(organizationId);
     if (!organization) {
       return res.json({ message: "Organization not found", status: false });
     }
 
-
     // remove all teams  of that organization
     await Team.deleteMany({ organizationId: organizationId });
     // remove all projects of that organization
 
-    await Project.deleteMany({organizationId:organizationId});
+    await Project.deleteMany({ organizationId: organizationId });
 
     // update user roles of that organization
 
@@ -304,14 +285,12 @@ const deleteOrganization = async (req, res) => {
 
     await Organization.findByIdAndDelete(organizationId);
 
-
     res.json({ message: "Organization deleted successfully", status: true });
-
   } catch (error) {
     console.log(error);
-    res.json({message:"Server error", status: false});
+    res.json({ message: "Server error", status: false });
   }
-}
+};
 
 const csvcreateOrg = async (req, res) => {
   const userId = req.user.user.id;
@@ -361,7 +340,11 @@ const csvcreateOrg = async (req, res) => {
       // If user doesn't exist, create a new user
       if (!existingUser) {
         temp_password = passgen({ length: 8 }); // Generate temporary password
-        existingUser = new User({ email, password: temp_password, username: email.split("@")[0] });
+        existingUser = new User({
+          email,
+          password: temp_password,
+          username: email.split("@")[0],
+        });
 
         // Send invitation email with temporary password
         await mail.sendInvitationEmail(email, organization, temp_password);
@@ -382,14 +365,15 @@ const csvcreateOrg = async (req, res) => {
     }
 
     // Return success message and organization details
-    res.json({ message: "Organization created successfully", organization: newOrganization });
+    res.json({
+      message: "Organization created successfully",
+      organization: newOrganization,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
-
 
 export default {
   getOrgMembers,
@@ -399,5 +383,5 @@ export default {
   editUserRole,
   getAll,
   deleteOrganization,
-  csvcreateOrg
+  csvcreateOrg,
 };
