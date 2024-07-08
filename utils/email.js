@@ -16,22 +16,23 @@ const sendInvitationEmail = async (email, organizationName,password) => {
     console.log("Sending email.....");
     try {
       await transporter.sendMail({
-        from: 'forage@gmail.com',
+        from: 'forge@gmail.com',
         to: email,
         subject: `Invitation to join ${organizationName}`,
         html: `
           <p>Hello,</p>
           <p>You have been invited to join ${organizationName} organization.</p>
-          <p>Click <a href="https://yourapp.com/accept-invite">here</a> to accept the invitation.</p>
+          <p>Click <a href="https://localhost:3000/auth">here</a> to accept the invitation.</p>
+          ${password? `password : ${password}`:""}
           <p>Best regards,</p>
-          <p>Your App Team</p>
+          <p>Forge Team</p>
         `,
         text: htmlToText.toString(`
           Hello,
   
           You have been invited to join ${organizationName} organization.
   
-          Click here to accept the invitation: http://localhost:3000/accept-invite
+          Click here to accept the invitation: http://localhost:3000/auth
   
           Your temporary credentials
   
@@ -40,7 +41,7 @@ const sendInvitationEmail = async (email, organizationName,password) => {
   
           Best regards,
           
-          Forage,
+          Forge,
           Open Source All in one Project Management Tool
   
         `)
