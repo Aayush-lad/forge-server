@@ -164,7 +164,7 @@ app.use("/chat", chatRouter);
 app.use("/meeting", meetingRouter);
 app.use("/form", formRouter);
 
-mongoose.connect("mongodb://localhost:27017/foge-dev")
+mongoose.connect(process.env.MONGO_URL)
   .then(() => {
     console.log("Connected to MongoDB");
   })
