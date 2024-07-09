@@ -21,7 +21,6 @@ import Form from "./models/form.js";
 import Response from "./models/response.js";
 import responseTime from 'response-time';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 
 const app = express();
@@ -108,11 +107,7 @@ app.use(responseTime());
 app.use(compression());
 app.use(morgan('combined'));
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
-});
-app.use(limiter);
+
 
 const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_BLOB_CONNECTION_STRING);
 const containerClient = blobServiceClient.getContainerClient(process.env.CONTAINER);
