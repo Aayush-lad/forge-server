@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import dotenv from "dotenv";
 import Stripe from "stripe";
+import mail from "../utils/email.js";
 
 dotenv.config();
 
@@ -18,7 +19,6 @@ const register = async (req, res) => {
   const { username, password, email } = req.body;
   try {
     let user = await User.findOne({ username });
-
     let emailUnique = await User.findOne({ email });
     if (user || emailUnique) {
       return res.json({ message: "User already exists", status: false });
@@ -164,8 +164,8 @@ const createCheckoutSession = async (req, res) => {
       },
     ],
     mode: "subscription",
-    success_url: `http://localhost:3000/payment/success?plan=${req.body.name}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: "http://localhost:3000/payment/failure",
+    success_url: `${process.env.CLIENT_URL}/payment/success?plan=${req.body.name}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.CLIENT_URL}/payment/failure`,
   });
 
   res.json({ id: session.id });
@@ -192,10 +192,65 @@ const changePlan = async (req, res) => {
   }
 };
 
+const forgotPassword =  async (req, res) => {
+  const { email } = req.body;
+  console.log(email);
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '48h' });
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    mail.sendResetPasswordEmail(user.email,`${process.env.CLIENT_URL}/reset-password/${token}`)
+
+    res.json({message:"Password reset mail sent", status:true})
+
+  } catch (error) {
+    console.log(error);
+    res.json({message:error.message,status:false});
+  }
+};
+
+
+const resetpassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  console.log(token,newPassword)
+  try {
+    const decoded = jwt.verify(token,process.env.JWT_SECRET);
+    const user = await User.findOne({
+      _id: decoded.id,
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.json({message:'Password reset token is invalid or has expired',status:false});
+    }
+
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({message:'Password has been reset',status:true});
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({message:"Server error", status:false});
+  }
+};
+
+
 export default {
   register,
   login,
   getUser,
   createCheckoutSession,
   changePlan,
+  forgotPassword,
+  resetpassword
 };

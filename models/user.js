@@ -15,18 +15,10 @@ const userSchema = new Schema({
   teams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  plan :{ type:String , enum:["Free","Basic","Business"], default:"Free"}
+  plan :{ type:String , enum:["Free","Basic","Business"], default:"Free"},
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 },{minimize:false});
-
-
-
-
-
-
-
-
-
-
 
 
 

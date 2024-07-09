@@ -5,7 +5,6 @@ import Task from "../models/task.js";
 import { ChatRoom } from "../models/chat.js";
 
 const create = async (req, res) => {
-
   const newProject = new Project(req.body);
   const { teamId } = req.body;
   try {
@@ -82,7 +81,6 @@ const deleteProject = async (req, res) => {
 };
 
 const addMember = async (req, res) => {
-
   const { projectId } = req.params;
   const { email } = req.body;
   try {
@@ -179,7 +177,7 @@ const addTask = async (req, res) => {
   const { projectId } = req.params;
 
   const newTask = new Task({ ...req.body, projectId: projectId });
- 
+
   try {
     const project = await Project.findById(projectId);
     if (!project) {
@@ -204,7 +202,7 @@ const getAllTasks = async (req, res) => {
     }
 
     const tasks = await Task.find({ projectId: projectId });
-  
+
     res.json({ tasks, message: "Tasks fetched successfully", status: true });
   } catch (error) {
     console.log(error);
@@ -351,7 +349,6 @@ const getDetails = async (req, res) => {
 };
 
 const updateTaskStatus = async (req, res) => {
-
   const { projectId, taskId } = req.params;
   const { status } = req.body;
   try {

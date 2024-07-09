@@ -30,7 +30,36 @@ const upload = multer();
 
 // Setup Redis connection
 const pubClient = new Redis(process.env.REDIS_URL);
-const subClient = pubClient.duplicate();
+const subClient = pubClient.duplicate()
+
+
+pubClient.on('error', (err) => {
+  console.error('Redis connection error:', err);
+});
+
+subClient.on('error', (err) => {
+  console.error('Redis subscription connection error:', err);
+});
+
+pubClient.on('connect', () => {
+  console.log('Connected to Redis');
+});
+
+subClient.on('connect', () => {
+  console.log('Connected to Redis subscription');
+});
+
+// Handle Redis reconnection logic
+pubClient.on('reconnecting', () => {
+  console.log('Reconnecting to Redis...');
+});
+
+subClient.on('reconnecting', () => {
+  console.log('Reconnecting to Redis subscription...');
+});
+
+
+
 
 const io = new Server(server, {
   cors: {
