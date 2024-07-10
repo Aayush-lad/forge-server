@@ -27,8 +27,8 @@ const create = async (req, res) => {
   try {
     const userId = req.user.user.id;
     const form = new Form({
-      title: "Form",
-      description: "Only registered users",
+      title: req.body.formSettings.title || "Form",
+      description: req.body.formSettings.description||"",
       formElements: req.body.formElements,
       createdBy: userId,
       allowEditAfterSubmission: req.body.formSettings.allowEditAfterSubmission,
