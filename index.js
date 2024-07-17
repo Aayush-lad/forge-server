@@ -180,6 +180,10 @@ app.post('/forms/submit-form', upload.single('file'), authMiddleware, async (req
   }
 });
 
+app.get("/",(req,res)=>{
+  res.send("Server active");
+})
+
 app.use("/auth", authRouter);
 app.use("/organization", orgRouter);
 app.use("/team", teamRouter);
