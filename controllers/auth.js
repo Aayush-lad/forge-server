@@ -130,7 +130,7 @@ const login = async (req, res) => {
 
 const getUser = async (req, res) => {
   try {
-    const user = await User.findOne(req.user.email)
+    const user = await User.findOne({email:req.user.user.email})
       .select("-password")
       .populate({
         path: "roles.organizationId",
